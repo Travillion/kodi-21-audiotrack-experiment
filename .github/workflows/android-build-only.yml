@@ -3,8 +3,7 @@ name: Kodi 21.2 Android build-only trial
 on:
   workflow_dispatch:
   push:
-    paths:
-      - ".github/workflows/android-build-only.yml"
+    branches: [main]
 
 permissions:
   contents: read
