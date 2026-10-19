@@ -7,7 +7,7 @@ while asking ActiveAE and Android AudioTrack to mute output.
 """
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1] / "kodi"
+ROOT = Path(__file__).resolve().parents[2] / "kodi"
 
 def replace_once(path, old, new, label):
     p = ROOT / path
