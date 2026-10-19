@@ -40,6 +40,16 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Reclaim unused hosted-runner disk space
+        shell: bash
+        run: |
+          set -euxo pipefail
+          # Kodi's dependency build is large. Remove preinstalled toolchains
+          # that this Android ARM64 build does not use; our SDK is installed
+          # separately under ANDROID_SDK_ROOT.
+          sudo rm -rf /usr/local/lib/android/sdk /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL
+          df -h
+
       - name: Show runner and initial disk space
         shell: bash
         run: |
@@ -120,17 +130,33 @@ jobs:
         shell: bash
         working-directory: kodi/tools/depends
         run: |
-          set -euxo pipefail
-          make -j2
+          set -uo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/experiment/build-diagnostics"
+          echo "Disk space before dependency build:"
           df -h
+          make -j2 > "$RUNNER_TEMP/kodi-depends-build.log" 2>&1
+          result=$?
+          tail -n 180 "$RUNNER_TEMP/kodi-depends-build.log"
+          cp "$RUNNER_TEMP/kodi-depends-build.log" "$GITHUB_WORKSPACE/experiment/build-diagnostics/kodi-depends-build.log" || true
+          echo "Disk space after dependency build:"
+          df -h
+          exit "$result"
 
       - name: Build binary add-ons
         shell: bash
         working-directory: kodi
         run: |
-          set -euxo pipefail
-          make -j2 -C tools/depends/target/binary-addons
+          set -uo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/experiment/build-diagnostics"
+          echo "Disk space before binary add-ons:"
           df -h
+          make -j2 -C tools/depends/target/binary-addons > "$RUNNER_TEMP/kodi-binary-addons-build.log" 2>&1
+          result=$?
+          tail -n 220 "$RUNNER_TEMP/kodi-binary-addons-build.log"
+          cp "$RUNNER_TEMP/kodi-binary-addons-build.log" "$GITHUB_WORKSPACE/experiment/build-diagnostics/kodi-binary-addons-build.log" || true
+          echo "Disk space after binary add-ons:"
+          df -h
+          exit "$result"
 
       - name: Configure Kodi CMake build
         shell: bash
