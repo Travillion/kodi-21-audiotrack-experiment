@@ -3,7 +3,7 @@ name: Kodi 21.2 Android build-only trial
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'experiment/**']
 
 permissions:
   contents: read
@@ -39,6 +39,14 @@ jobs:
           path: kodi
           submodules: recursive
           fetch-depth: 1
+
+      - name: Apply experimental EDL AudioTrack mute patch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 experiment/scripts/apply-edl-audiotrack-mute-experiment.py
+          git -C kodi diff --check
+          git -C kodi diff --stat
 
       - name: Reclaim unused hosted-runner disk space
         shell: bash
