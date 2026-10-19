@@ -103,7 +103,7 @@ replace_once(
     "xbmc/cores/AudioEngine/Sinks/AESinkAUDIOTRACK.h",
     '  void Drain() override;\n',
     '  void Drain() override;\n'
-    '  bool HasVolume() override { return true; }\n'
+    '  bool HasVolume() override { return m_passthrough; }\n'
     '  void SetVolume(float volume) override;\n',
     "AudioTrack sink volume interface",
 )
