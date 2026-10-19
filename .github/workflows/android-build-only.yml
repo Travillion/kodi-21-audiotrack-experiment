@@ -66,6 +66,10 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # The action defaults to the retired SDK package "tools".
+          # Install platform-tools here; the required SDK/NDK packages are installed below.
+          packages: "platform-tools"
 
       - name: Install Android SDK and NDK packages
         shell: bash
