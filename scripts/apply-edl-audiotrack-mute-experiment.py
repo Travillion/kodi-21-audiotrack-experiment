@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Apply the isolated Kodi 21.2 EDL mute experiment to a clean Kodi checkout.
+"""Apply the comprehensive Kodi 21.2 EDL AudioTrack mute experiment.
 
-This is deliberately a test-only patch: it leaves the normal EDL packet-drop
-behavior intact for CUT edits and changes MUTE edits to keep packets flowing,
-while asking ActiveAE and Android AudioTrack to mute output.
+CUT edits retain their normal packet-drop behavior. EDL MUTE edits keep audio
+packets flowing and ask ActiveAE/Android AudioTrack to mute output, testing the
+integrated behavior on an actual Android passthrough playback path.
 """
 from pathlib import Path
 
