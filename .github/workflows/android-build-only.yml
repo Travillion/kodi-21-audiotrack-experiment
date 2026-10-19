@@ -83,6 +83,15 @@ jobs:
           yes | sdkmanager --licenses || true
           ls -la "$ANDROID_SDK_ROOT"
           ls -la "$ANDROID_SDK_ROOT/ndk/21.4.7075529"
+          # Kodi 21.2's configure script checks specifically for
+          # cmdline-tools/latest/bin/sdkmanager. The current setup action
+          # installs versioned cmdline-tools (for example, 16.0) instead.
+          if [ ! -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            SDKMANAGER_PATH="$(command -v sdkmanager)"
+            CMDLINE_TOOLS_DIR="$(dirname "$(dirname "$SDKMANAGER_PATH")")"
+            ln -sfn "$CMDLINE_TOOLS_DIR" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          fi
+          test -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
 
       - name: Create debug signing key
         shell: bash
