@@ -168,11 +168,11 @@ replace_once(
     '    CLog::Log(LOGERROR, "AudioTrack mute diagnostic: GetObjectClass returned null");\n'
     '    return;\n'
     '  }\n'
-    '  // Android AudioTrack.setVolume(float) returns an int status code, so JNI must use I (not V).
+    '  // Android AudioTrack.setVolume(float) returns an int status code, so JNI must use I (not V).\n'
     '  jmethodID setVolume = env->GetMethodID(trackClass, "setVolume", "(F)I");\n'
     '  if (env->ExceptionCheck())\n'
     '  {\n'
-    '    CLog::Log(LOGERROR, "AudioTrack mute diagnostic: GetMethodID(setVolume, (F)V) raised an exception; Java exception follows");\n'
+    '    CLog::Log(LOGERROR, "AudioTrack mute diagnostic: GetMethodID(setVolume, (F)I) raised an exception; Java exception follows");\n'
     '    env->ExceptionDescribe();\n'
     '    env->ExceptionClear();\n'
     '  }\n'
