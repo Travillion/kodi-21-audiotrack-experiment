@@ -56,7 +56,9 @@ jobs:
             android-tools/xbmc-depends
             android-tools/xbmc-tarballs
             kodi-build
-          key: kodi-21.2-omega-android-arm64-ndk21.4-deps-v1
+          key: kodi-21.2-omega-android-arm64-ndk21.4-deps-${{ github.run_id }}
+          restore-keys: |
+            kodi-21.2-omega-android-arm64-ndk21.4-deps-
 
       - name: Restore compiler cache
         uses: actions/cache@v4
