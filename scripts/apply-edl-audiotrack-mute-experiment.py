@@ -22,8 +22,8 @@ def replace_once(path, old, new, label):
 # the user's existing Kodi app instead of replacing it.
 replace_once(
     "version.txt",
-    "APP_PACKAGE org.xbmc.kodi\\n",
-    "APP_PACKAGE org.xbmc.kodi.edlmute\\n",
+    "APP_PACKAGE org.xbmc.kodi\n",
+    "APP_PACKAGE org.xbmc.kodi.edlmute\n",
     "side-by-side Android package ID",
 )
 
