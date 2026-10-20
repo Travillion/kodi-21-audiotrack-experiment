@@ -18,6 +18,15 @@ def replace_once(path, old, new, label):
     p.write_text(text.replace(old, new, 1))
     print(f"Patched {label}: {path}")
 
+# Give this experimental APK a distinct Android package ID so it installs beside
+# the user's existing Kodi app instead of replacing it.
+replace_once(
+    "version.txt",
+    "APP_PACKAGE org.xbmc.kodi\\n",
+    "APP_PACKAGE org.xbmc.kodi.edlmute\\n",
+    "side-by-side Android package ID",
+)
+
 # VideoPlayer: represent EDL MUTE as an output mute, not dropped encoded packets.
 replace_once(
     "xbmc/cores/VideoPlayer/VideoPlayer.h",
