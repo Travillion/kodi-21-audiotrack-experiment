@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Apply the Kodi 21.2 EDL IEC pause-burst mute experiment.
 
-CUT edits retain normal packet dropping. For EDL MUTE intervals, encoded raw
-audio packets are replaced at the IEC packer with pause bursts, keeping the
-passthrough carrier active without relying on AudioTrack volume controls.
+CUT edits retain normal packet dropping. Kodi's original MUTE behavior is
+preserved except for TrueHD passthrough, where IEC pause bursts keep the
+receiver carrier active without relying on AudioTrack volume controls.
 """
 from pathlib import Path
 
@@ -35,14 +35,22 @@ replace_once(
     '  if (CheckSceneSkip(m_CurrentAudio))\n'
     '    drop = true;\n'
     '  else if (m_Edl.InEdit(DVD_TIME_TO_MSEC(m_CurrentAudio.dts + m_offset_pts), &edit) &&\n'
-    '           edit.action == EDL::Action::MUTE)\n'
+    '           edit.action == EDL::Action::MUTE &&\n'
+    '           !(m_CurrentAudio.hint.codec == AV_CODEC_ID_TRUEHD && m_VideoPlayerAudio->IsPassthrough()))\n'
     '  {\n'
     '    drop = true;\n'
     '  }\n',
-    '  // EDL MUTE is handled on decoded audio frames by substituting IEC pause bursts.\n'
-    '  // CUT edits still drop packets as before.\n'
+    '  EDL::Edit edit;\n'
     '  if (CheckSceneSkip(m_CurrentAudio))\n'
-    '    drop = true;\n',
+    '    drop = true;\n'
+    '  else if (m_Edl.InEdit(DVD_TIME_TO_MSEC(m_CurrentAudio.dts + m_offset_pts), &edit) &&\n'
+    '           edit.action == EDL::Action::MUTE &&\n'
+    '           !(m_CurrentAudio.hint.codec == AV_CODEC_ID_TRUEHD && m_VideoPlayerAudio->IsPassthrough()))\n'
+    '  {\n'
+    '    // Preserve Kodi\'s original mute behavior except for TrueHD passthrough.\n'
+    '    // TrueHD passthrough instead uses IEC pause bursts to keep the carrier active.\n'
+    '    drop = true;\n'
+    '  }\n',
     "keep EDL MUTE packets flowing",
 )
 
