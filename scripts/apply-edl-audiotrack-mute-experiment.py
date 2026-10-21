@@ -28,7 +28,8 @@ replace_once(
     "side-by-side Android package ID",
 )
 
-# The demuxer must keep MUTE packets flowing. CUT behavior remains unchanged.
+# Only TrueHD passthrough bypasses Kodi's original MUTE packet dropping.
+# All other codecs retain the original behavior; CUT handling is unchanged.
 replace_once(
     "xbmc/cores/VideoPlayer/VideoPlayer.cpp",
     '  EDL::Edit edit;\n'
