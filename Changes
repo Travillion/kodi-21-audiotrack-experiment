@@ -1,0 +1,18 @@
+1. A Brief synopsis of this patch
+
+8 Kodi C++ source/header files
+The audio and video playback code that our patch modifies
+
+Roughly a few dozen lines of functional changes
+Plus a small Android package-name change so our test build can coexist with regular Kodi
+
+The eight C++ files span these areas:
+Kodi component	        What we changed
+VideoPlayer.cpp	        Preserve original EDL mute behavior except for TrueHD passthrough
+VideoPlayerAudio.h/.cpp	Detect mute intervals and pass that information downstream
+AudioSinkAE.h/.cpp	    Carry the mute flag into Kodi's audio engine
+AEStream.h	            Add a field to carry mute metadata
+ActiveAEStream.cpp	    Mark raw audio packets that need pause bursts
+ActiveAESink.cpp	      Substitute IEC pause bursts for encoded audio during the applicable mute intervals
+
+These are focused changes rather than a rewrite of Kodi's playback engine. However, they touch several connected layers because the mute decision has to travel from the video player's EDL handling all the way to the audio output.
