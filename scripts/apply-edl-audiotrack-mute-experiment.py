@@ -35,8 +35,7 @@ replace_once(
     '  if (CheckSceneSkip(m_CurrentAudio))\n'
     '    drop = true;\n'
     '  else if (m_Edl.InEdit(DVD_TIME_TO_MSEC(m_CurrentAudio.dts + m_offset_pts), &edit) &&\n'
-    '           edit.action == EDL::Action::MUTE &&\n'
-    '           !(m_CurrentAudio.hint.codec == AV_CODEC_ID_TRUEHD && m_VideoPlayerAudio->IsPassthrough()))\n'
+    '           edit.action == EDL::Action::MUTE)\n'
     '  {\n'
     '    drop = true;\n'
     '  }\n',
