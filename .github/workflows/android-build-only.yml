@@ -3,7 +3,10 @@ name: Kodi 21.2 Android build-only trial
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, 'experiment/**']
+    # Workflow-only edits do not launch an expensive build, but patch-script changes do.
+    paths-ignore:
+      - '.github/workflows/**'
 
 permissions:
   contents: read
@@ -24,6 +27,8 @@ jobs:
       KODI_DEPENDS_PREFIX: ${{ github.workspace }}/android-tools/xbmc-depends
       KODI_TARBALLS: ${{ github.workspace }}/android-tools/xbmc-tarballs
       BUILD_DIR: ${{ github.workspace }}/kodi-build
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 5G
 
     steps:
       - name: Check out experiment repository
@@ -39,6 +44,38 @@ jobs:
           path: kodi
           submodules: recursive
           fetch-depth: 1
+
+      # Reuse the expensive dependency outputs between hosted-runner jobs.
+      # The key intentionally describes the stable Kodi/Android build environment,
+      # not the experiment patch, so small patch edits do not invalidate it.
+      - name: Restore Kodi dependency and CMake build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            kodi/tools/depends/target
+            android-tools/xbmc-depends
+            android-tools/xbmc-tarballs
+            kodi-build
+          key: kodi-21.2-omega-android-arm64-ndk21.4-deps-${{ github.run_id }}
+          restore-keys: |
+            kodi-21.2-omega-android-arm64-ndk21.4-deps-
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: kodi-21.2-android-arm64-ccache-${{ github.run_id }}
+          restore-keys: |
+            kodi-21.2-android-arm64-ccache-
+
+      - name: Apply experimental EDL AudioTrack mute patch
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python3 -m py_compile experiment/scripts/apply-edl-audiotrack-mute-experiment.py
+          python3 experiment/scripts/apply-edl-audiotrack-mute-experiment.py
+          git -C kodi diff --check
+          git -C kodi diff --stat
 
       - name: Reclaim unused hosted-runner disk space
         shell: bash
@@ -103,15 +140,26 @@ jobs:
           fi
           test -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
 
-      - name: Create debug signing key
+      - name: Restore persistent Android signing key
+        shell: bash
+        env:
+          ANDROID_DEBUG_KEYSTORE_BASE64: ${{ secrets.ANDROID_DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_DEBUG_KEYSTORE_BASE64:-}" ]]; then
+            echo "::error::Configure repository Actions secret ANDROID_DEBUG_KEYSTORE_BASE64 before building. It must contain the base64-encoded persistent debug.keystore."
+            exit 1
+          fi
+          mkdir -p "$HOME/.android"
+          printf "%s" "$ANDROID_DEBUG_KEYSTORE_BASE64" | base64 --decode > "$HOME/.android/debug.keystore"
+          keytool -list -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey
+
+      - name: Configure ccache
         shell: bash
         run: |
           set -euxo pipefail
-          mkdir -p "$HOME/.android"
-          keytool -genkeypair -keystore "$HOME/.android/debug.keystore" \
-            -storepass android -keypass android -alias androiddebugkey \
-            -dname "CN=Android Debug,O=Android,C=US" \
-            -keyalg RSA -keysize 2048 -validity 10000
+          ccache --set-config=max_size="$CCACHE_MAXSIZE"
+          ccache --show-stats
 
       - name: Bootstrap and configure Kodi dependencies
         shell: bash
@@ -171,6 +219,7 @@ jobs:
         run: |
           set -euxo pipefail
           make -j2
+          ccache --show-stats || true
           df -h
 
       - name: Package APK

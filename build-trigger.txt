@@ -1,0 +1,2 @@
+Trigger the Kodi 21.2 Android ARM64 build for the IEC pause-burst EDL mute experiment.
+Patch script: scripts/apply-edl-audiotrack-mute-experiment.py
