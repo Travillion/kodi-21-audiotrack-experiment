@@ -7,6 +7,8 @@ on:
     # Workflow-only edits do not launch an expensive build, but patch-script changes do.
     paths-ignore:
       - '.github/workflows/**'
+      - 'scripts/apply-edl-windows-mute-experiment.py'
+      - 'docs/windows-edl-mute-build-notes.md'
 
 permissions:
   contents: read
