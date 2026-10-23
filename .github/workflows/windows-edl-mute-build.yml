@@ -4,7 +4,6 @@ on:
   push:
     branches: [experiment/windows-edl-mute]
     paths:
-      - '.github/workflows/windows-edl-mute-build.yml'
       - 'scripts/apply-edl-windows-mute-experiment.py'
   workflow_dispatch:
 
@@ -145,6 +144,5 @@ jobs:
           path: |
             kodi/kodi-build.x64/CMakeFiles/CMakeOutput.log
             kodi/kodi-build.x64/CMakeFiles/CMakeError.log
-            kodi/project/BuildDependencies
           if-no-files-found: ignore
           retention-days: 7
