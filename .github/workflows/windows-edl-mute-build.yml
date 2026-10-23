@@ -1,0 +1,150 @@
+name: Kodi 21.2 Windows EDL mute test build
+
+on:
+  push:
+    branches: [experiment/windows-edl-mute]
+    paths:
+      - '.github/workflows/windows-edl-mute-build.yml'
+      - 'scripts/apply-edl-windows-mute-experiment.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodi-windows-edl-mute-test
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 360
+
+    steps:
+      - name: Check out experiment repository
+        uses: actions/checkout@v4
+        with:
+          path: experiment
+
+      - name: Check out Kodi 21.2 Omega
+        uses: actions/checkout@v4
+        with:
+          repository: xbmc/xbmc
+          ref: 21.2-Omega
+          path: kodi
+          submodules: recursive
+          fetch-depth: 1
+
+      # Keep downloaded dependency packages and the expensive MSYS2/MinGW setup.
+      # The key changes only when Kodi's Windows dependency/build scripts change.
+      - name: Restore Windows dependency cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            kodi/project/BuildDependencies/downloads
+            kodi/project/BuildDependencies/downloads2
+            kodi/project/BuildDependencies/mingwlibs
+            kodi/project/BuildDependencies/msys64
+            kodi/project/BuildDependencies/tools
+            kodi/cmake/addons/build/download
+          key: kodi-21.2-win-x64-deps-v1-${{ hashFiles('kodi/project/BuildDependencies/scripts/**', 'kodi/tools/buildsteps/windows/**', 'kodi/cmake/addons/**') }}
+          restore-keys: |
+            kodi-21.2-win-x64-deps-v1-
+
+      # Cache the Visual Studio/CMake build tree for incremental recompiles.
+      # The fallback intentionally permits patch-only edits to reuse prior objects.
+      - name: Restore Windows CMake build cache
+        uses: actions/cache@v4
+        with:
+          path: kodi/kodi-build.x64
+          key: kodi-21.2-win-x64-cmake-v1-${{ hashFiles('kodi/CMakeLists.txt', 'kodi/cmake/**', 'kodi/project/BuildDependencies/**', 'kodi/tools/buildsteps/windows/**') }}
+          restore-keys: |
+            kodi-21.2-win-x64-cmake-v1-
+
+      - name: Check runner and available disk space
+        shell: pwsh
+        run: |
+          Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion
+          Get-PSDrive -PSProvider FileSystem | Format-Table -AutoSize
+          git -C kodi rev-parse HEAD
+          git -C kodi status --short
+
+      - name: Prepare Kodi Windows dependencies
+        shell: cmd
+        working-directory: kodi/tools/buildsteps/windows/x64
+        run: |
+          call download-dependencies.bat
+          if errorlevel 1 exit /b %errorlevel%
+          call download-msys2.bat
+          if errorlevel 1 exit /b %errorlevel%
+          call make-mingwlibs.bat
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Apply Windows EDL mute patch
+        shell: pwsh
+        run: |
+          python -m py_compile experiment/scripts/apply-edl-windows-mute-experiment.py
+          python experiment/scripts/apply-edl-windows-mute-experiment.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git -C kodi diff --check
+          git -C kodi diff --stat
+
+      - name: Build Kodi desktop x64 Release
+        shell: cmd
+        working-directory: kodi/tools/buildsteps/windows/x64
+        run: |
+          call BuildSetup.bat noclean noprompt nobinaryaddons
+          if errorlevel 1 exit /b %errorlevel%
+
+      - name: Prepare portable test package
+        if: success()
+        shell: pwsh
+        run: |
+          $app = Join-Path $env:GITHUB_WORKSPACE 'kodi/project/Win32BuildSetup/BUILD_WIN32/application'
+          if (!(Test-Path (Join-Path $app 'Kodi.exe'))) {
+            Write-Error "Kodi.exe was not found in the expected Windows build output: $app"
+            exit 1
+          }
+          $readme = @'
+          Kodi 21.2 EDL Mute — Windows portable test build
+
+          This is an experimental test build, not an official Kodi release.
+
+          FIRST INSTALL:
+          1. Extract all files into a dedicated folder, for example C:\Kodi-EDL-Test.
+          2. In that folder, create a folder named portable_data next to Kodi.exe.
+          3. Launch Kodi.exe from this folder. This keeps test settings separate from normal Kodi.
+
+          UPDATING THIS TEST BUILD:
+          1. Close Kodi completely.
+          2. Extract the new build over the same test folder and allow files to be replaced.
+          3. Do not delete portable_data. Your test settings remain there.
+
+          To return to normal Kodi, close this test build and launch your usual Kodi installation.
+          '@
+          Set-Content -Path (Join-Path $app 'EDL-Mute-Windows-Test-README.txt') -Value $readme -Encoding utf8
+          $zip = Join-Path $env:GITHUB_WORKSPACE 'kodi-21.2-windows-x64-edl-mute-test.zip'
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path (Join-Path $app '*') -DestinationPath $zip -CompressionLevel Optimal
+          Get-Item $zip | Select-Object FullName, Length
+
+      - name: Upload portable Windows test build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-21.2-windows-x64-edl-mute-test
+          path: kodi-21.2-windows-x64-edl-mute-test.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload Windows build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodi-windows-edl-mute-build-diagnostics
+          path: |
+            kodi/kodi-build.x64/CMakeFiles/CMakeOutput.log
+            kodi/kodi-build.x64/CMakeFiles/CMakeError.log
+            kodi/project/BuildDependencies
+          if-no-files-found: ignore
+          retention-days: 7
