@@ -190,3 +190,5 @@ replace_once(
 )
 
 print("EDL IEC pause-burst mute experiment patch applied.")
+
+# Windows-only patch: Android package identity changes are intentionally excluded.
