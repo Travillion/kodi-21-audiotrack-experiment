@@ -5,6 +5,7 @@ on:
     branches: [experiment/windows-edl-mute]
     paths:
       - 'scripts/apply-edl-windows-mute-experiment.py'
+      - '.github/workflows/windows-edl-mute-build.yml'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +13,7 @@ permissions:
 
 concurrency:
   group: kodi-windows-edl-mute-test
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -76,7 +77,7 @@ jobs:
           if errorlevel 1 exit /b %errorlevel%
           call download-msys2.bat
           if errorlevel 1 exit /b %errorlevel%
-          call make-mingwlibs.bat
+          call make-mingwlibs.bat noprompt
           if errorlevel 1 exit /b %errorlevel%
 
       - name: Apply Windows EDL mute patch
